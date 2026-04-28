@@ -5,13 +5,13 @@ TypeScript SDK for the [Nen Desktop API](https://getnen.ai). Create cloud deskto
 ## Installation
 
 ```bash
-npm install nen-desktop
+npm install nen-sdk-js
 ```
 
 ## Quick Start
 
 ```typescript
-import { NenDesktop } from "nen-desktop";
+import { NenDesktop } from "nen-sdk-js";
 
 const client = new NenDesktop({ apiKey: "sk_nen_..." });
 
@@ -72,7 +72,7 @@ The `execute()` method uses a 120-second timeout regardless of the client timeou
 All API errors throw `NenDesktopError`, which carries `statusCode` and `responseBody`:
 
 ```typescript
-import { NenDesktop, NenDesktopError } from "nen-desktop";
+import { NenDesktop, NenDesktopError } from "nen-sdk-js";
 
 const client = new NenDesktop({ apiKey: "sk_nen_..." });
 
