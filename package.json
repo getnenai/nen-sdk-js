@@ -1,5 +1,5 @@
 {
-  "name": "nen-desktop",
+  "name": "nen-sdk-js",
   "version": "0.1.0",
   "description": "TypeScript SDK for the Nen Desktop API",
   "type": "module",
