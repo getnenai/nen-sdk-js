@@ -91,4 +91,4 @@ This SDK uses the native `fetch` API (Node 20+, modern browsers) and has no runt
 
 ## Examples
 
-See the full agent example in [`cmd/nen/templates/anthropic-computer-use/agent.py`](../../cmd/nen/templates/anthropic-computer-use/agent.py).
+See the full agent example in the [Nen documentation](https://docs.getnen.ai/examples/anthropic).
