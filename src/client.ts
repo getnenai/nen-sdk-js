@@ -136,6 +136,57 @@ export class NenDesktop {
     return toExecuteResult(resp);
   }
 
+  // -- Computer-use action helpers --
+
+  async screenshot(desktopId: string): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "screenshot" });
+  }
+
+  async leftClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "left_click", params: { coordinate: [x, y] } });
+  }
+
+  async rightClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "right_click", params: { coordinate: [x, y] } });
+  }
+
+  async doubleClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "double_click", params: { coordinate: [x, y] } });
+  }
+
+  async middleClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "middle_click", params: { coordinate: [x, y] } });
+  }
+
+  async mouseMove(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "mouse_move", params: { coordinate: [x, y] } });
+  }
+
+  async typeText(desktopId: string, text: string): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "type", params: { text } });
+  }
+
+  async keyPress(desktopId: string, key: string): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "key", params: { text: key } });
+  }
+
+  async scroll(
+    desktopId: string,
+    x: number,
+    y: number,
+    options: { direction: "up" | "down"; amount?: number },
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "scroll",
+      params: { coordinate: [x, y], direction: options.direction, amount: options.amount ?? 3 },
+    });
+  }
+
+  async cursorPosition(desktopId: string): Promise<ExecuteResult> {
+    return this.execute(desktopId, { tool: "computer", action: "cursor_position" });
+  }
+
   async listTools(desktopId: string): Promise<ToolSchema[]> {
     const resp = await this.request("GET", `/desktops/${desktopId}/tools`);
     return (resp as unknown as Record<string, unknown>[]).map(toToolSchema);
