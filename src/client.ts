@@ -1,11 +1,13 @@
-import { NenDesktopError } from "./errors.js";
+import { NenDesktopContractError, NenDesktopError } from "./errors.js";
 import type {
   DeleteResponse,
   Desktop,
   ExecuteResult,
+  File,
   NenDesktopOptions,
   SessionInfo,
   ToolSchema,
+  UploadFileResponse,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://desktop.api.getnen.ai";
@@ -66,6 +68,52 @@ function toSessionInfo(raw: Record<string, unknown>): SessionInfo {
     active: raw.active as boolean,
     interactive: raw.interactive as boolean,
   };
+}
+
+// Strict adapters for the file API. A silent coerce here would hide
+// server/contract regressions as "undefined name" / "0 byte" surprises
+// downstream; surface the bad payload immediately instead — matches the
+// Python SDK's pydantic strictness.
+
+// Guard rules out null, arrays, and primitives so the subsequent property
+// reads can't TypeError ("Cannot read properties of null") — every
+// contract-mismatch surfaces as NenDesktopContractError instead.
+function isPlainObject(raw: unknown): raw is Record<string, unknown> {
+  return typeof raw === "object" && raw !== null && !Array.isArray(raw);
+}
+
+function toFile(raw: unknown): File {
+  if (!isPlainObject(raw)) {
+    throw new NenDesktopContractError("invalid File payload", raw);
+  }
+  if (
+    typeof raw.name !== "string" ||
+    typeof raw.size !== "number" ||
+    typeof raw.modified !== "number"
+  ) {
+    throw new NenDesktopContractError("invalid File payload", raw);
+  }
+  return { name: raw.name, size: raw.size, modified: raw.modified };
+}
+
+function toUploadFileResponse(raw: unknown): UploadFileResponse {
+  if (!isPlainObject(raw)) {
+    throw new NenDesktopContractError(
+      "invalid UploadFileResponse payload",
+      raw,
+    );
+  }
+  if (
+    typeof raw.success !== "boolean" ||
+    typeof raw.size !== "number" ||
+    typeof raw.filename !== "string"
+  ) {
+    throw new NenDesktopContractError(
+      "invalid UploadFileResponse payload",
+      raw,
+    );
+  }
+  return { success: raw.success, size: raw.size, filename: raw.filename };
 }
 
 export class NenDesktop {
@@ -142,32 +190,80 @@ export class NenDesktop {
     return this.execute(desktopId, { tool: "computer", action: "screenshot" });
   }
 
-  async leftClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "left_click", params: { coordinate: [x, y] } });
+  async leftClick(
+    desktopId: string,
+    x: number,
+    y: number,
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "left_click",
+      params: { coordinate: [x, y] },
+    });
   }
 
-  async rightClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "right_click", params: { coordinate: [x, y] } });
+  async rightClick(
+    desktopId: string,
+    x: number,
+    y: number,
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "right_click",
+      params: { coordinate: [x, y] },
+    });
   }
 
-  async doubleClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "double_click", params: { coordinate: [x, y] } });
+  async doubleClick(
+    desktopId: string,
+    x: number,
+    y: number,
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "double_click",
+      params: { coordinate: [x, y] },
+    });
   }
 
-  async middleClick(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "middle_click", params: { coordinate: [x, y] } });
+  async middleClick(
+    desktopId: string,
+    x: number,
+    y: number,
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "middle_click",
+      params: { coordinate: [x, y] },
+    });
   }
 
-  async mouseMove(desktopId: string, x: number, y: number): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "mouse_move", params: { coordinate: [x, y] } });
+  async mouseMove(
+    desktopId: string,
+    x: number,
+    y: number,
+  ): Promise<ExecuteResult> {
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "mouse_move",
+      params: { coordinate: [x, y] },
+    });
   }
 
   async typeText(desktopId: string, text: string): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "type", params: { text } });
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "type",
+      params: { text },
+    });
   }
 
   async keyPress(desktopId: string, key: string): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "key", params: { text: key } });
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "key",
+      params: { text: key },
+    });
   }
 
   async scroll(
@@ -179,12 +275,19 @@ export class NenDesktop {
     return this.execute(desktopId, {
       tool: "computer",
       action: "scroll",
-      params: { coordinate: [x, y], direction: options.direction, amount: options.amount ?? 3 },
+      params: {
+        coordinate: [x, y],
+        direction: options.direction,
+        amount: options.amount ?? 3,
+      },
     });
   }
 
   async cursorPosition(desktopId: string): Promise<ExecuteResult> {
-    return this.execute(desktopId, { tool: "computer", action: "cursor_position" });
+    return this.execute(desktopId, {
+      tool: "computer",
+      action: "cursor_position",
+    });
   }
 
   async listTools(desktopId: string): Promise<ToolSchema[]> {
@@ -213,7 +316,105 @@ export class NenDesktop {
     await this.request("DELETE", `/desktops/${desktopId}/session`);
   }
 
+  // -- Files --
+
+  async listFiles(desktopId: string): Promise<File[]> {
+    const resp = await this.request("GET", `/desktops/${desktopId}/files`);
+    const raw = resp as unknown as { files?: unknown };
+    if (!Array.isArray(raw.files)) {
+      // No silent default — a missing "files" key (or wrong type) signals
+      // a contract regression we want to surface, not paper over as
+      // "empty drive". Mirrors the Python SDK's strictness.
+      throw new NenDesktopContractError(
+        "invalid ListFiles payload (missing files array)",
+        raw,
+      );
+    }
+    return raw.files.map((f) => toFile(f));
+  }
+
+  /**
+   * Upload a file to the desktop's shared drive.
+   *
+   * Accepts any of fetch's standard body types — Uint8Array, ArrayBuffer,
+   * string, or Blob. The server caps the body at 100 MiB. `contentType`
+   * defaults to `application/octet-stream` and passes through verbatim.
+   */
+  async uploadFile(
+    desktopId: string,
+    name: string,
+    body: Uint8Array | ArrayBuffer | string | Blob,
+    options?: { contentType?: string },
+  ): Promise<UploadFileResponse> {
+    const path = `/desktops/${desktopId}/files/${encodeURIComponent(name)}`;
+    return this.withFetch(
+      "POST",
+      path,
+      {
+        body: body as BodyInit,
+        headers: {
+          "Content-Type": options?.contentType ?? "application/octet-stream",
+        },
+        timeout: EXECUTE_TIMEOUT,
+      },
+      async (resp) => toUploadFileResponse(await resp.json()),
+    );
+  }
+
+  /**
+   * Download a file from the desktop's shared drive and return its raw bytes.
+   * Files are capped at 100 MiB, so a single `Uint8Array` always fits.
+   */
+  async downloadFile(desktopId: string, name: string): Promise<Uint8Array> {
+    const path = `/desktops/${desktopId}/files/${encodeURIComponent(name)}`;
+    return this.withFetch(
+      "GET",
+      path,
+      { timeout: EXECUTE_TIMEOUT },
+      async (resp) => new Uint8Array(await resp.arrayBuffer()),
+    );
+  }
+
   // -- Internal --
+
+  /**
+   * withFetch wraps `fetch` with auth, AbortController-backed timeout, and
+   * a >=400 status check. The timer is held across body consumption so a
+   * streamed download/upload stays covered. Used by uploadFile and
+   * downloadFile, which need binary body / response and so can't go
+   * through `request` (which is JSON-only).
+   */
+  private async withFetch<T>(
+    method: string,
+    path: string,
+    options: {
+      body?: BodyInit;
+      headers?: Record<string, string>;
+      timeout: number;
+    },
+    consume: (resp: Response) => Promise<T>,
+  ): Promise<T> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeout);
+    try {
+      const resp = await fetch(`${this.baseUrl}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          ...(options.headers ?? {}),
+        },
+        body: options.body,
+        signal: controller.signal,
+      });
+      if (resp.status >= 400) {
+        const text = await resp.text();
+        throw new NenDesktopError(resp.status, text);
+      }
+      return await consume(resp);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   private async request(
     method: string,
