@@ -41,14 +41,17 @@ jobs:
 
       - name: Upgrade npm to a version that supports OIDC trusted publishing
         # Node 22 ships with npm 10.x. Tokenless OIDC publish auth was
-        # added in npm CLI 11.5.1 (Aug 2025). Without this upgrade, the
+        # added in npm CLI 11.5.1 (July 2025). Without this upgrade, the
         # publish step's PUT to https://registry.npmjs.org/<pkg> is
         # authenticated by setup-node's stale .npmrc `_authToken` (empty
         # in our flow) and the registry returns 404 even though `--provenance`
         # successfully signed via OIDC. The `--provenance` and tokenless-auth
         # flows are independent — provenance is supported since npm 9.5,
-        # tokenless publish auth needs ≥ 11.5.
-        run: npm install -g npm@latest
+        # tokenless publish auth needs ≥ 11.5. Constrain to the 11.x major
+        # so a future npm 12 doesn't silently introduce breaking changes
+        # mid-release (per CodeRabbit's nitpick on #6); bump deliberately
+        # when 12 ships.
+        run: npm install -g npm@^11.5.1
 
       - name: Publish to npm
         run: npm publish --provenance --access public
