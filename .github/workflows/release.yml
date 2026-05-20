@@ -21,7 +21,12 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          # Node 24 ships npm 11.x bundled (vs Node 22's npm 10.x), which
+          # has the OIDC tokenless publish auth that npm trusted publishing
+          # needs. Avoids the npm self-upgrade footgun where
+          # `npm install -g npm@^11.5.1` deletes its own promise-retry
+          # dep mid-install and crashes (see #6).
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Verify tag matches package.json version
@@ -39,21 +44,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upgrade npm to a version that supports OIDC trusted publishing
-        # Node 22 ships with npm 10.x. Tokenless OIDC publish auth was
-        # added in npm CLI 11.5.1 (July 2025). Without this upgrade, the
-        # publish step's PUT to https://registry.npmjs.org/<pkg> is
-        # authenticated by setup-node's stale .npmrc `_authToken` (empty
-        # in our flow) and the registry returns 404 even though `--provenance`
-        # successfully signed via OIDC. The `--provenance` and tokenless-auth
-        # flows are independent — provenance is supported since npm 9.5,
-        # tokenless publish auth needs ≥ 11.5. Constrain to the 11.x major
-        # so a future npm 12 doesn't silently introduce breaking changes
-        # mid-release (per CodeRabbit's nitpick on #6); bump deliberately
-        # when 12 ships.
-        run: npm install -g npm@^11.5.1
-
       - name: Publish to npm
+        # npm bundled with Node 24 is 11.x, which supports tokenless OIDC
+        # publish auth — the registry exchanges the GitHub Actions ID token
+        # (via ACTIONS_ID_TOKEN_REQUEST_*) for a short-lived publish token,
+        # bypassing the .npmrc placeholder setup-node writes. The Trusted
+        # Publisher configured on npmjs.com (repo, workflow, environment)
+        # must match the OIDC claims. `--provenance` (SLSA attestation,
+        # supported since npm 9.5) is independent of the auth flow.
         run: npm publish --provenance --access public
 
       - name: Create GitHub release
