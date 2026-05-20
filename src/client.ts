@@ -74,7 +74,18 @@ function toSessionInfo(raw: Record<string, unknown>): SessionInfo {
 // server/contract regressions as "undefined name" / "0 byte" surprises
 // downstream; surface the bad payload immediately instead — matches the
 // Python SDK's pydantic strictness.
-function toFile(raw: Record<string, unknown>): File {
+
+// Guard rules out null, arrays, and primitives so the subsequent property
+// reads can't TypeError ("Cannot read properties of null") — every
+// contract-mismatch surfaces as NenDesktopContractError instead.
+function isPlainObject(raw: unknown): raw is Record<string, unknown> {
+  return typeof raw === "object" && raw !== null && !Array.isArray(raw);
+}
+
+function toFile(raw: unknown): File {
+  if (!isPlainObject(raw)) {
+    throw new NenDesktopContractError("invalid File payload", raw);
+  }
   if (
     typeof raw.name !== "string" ||
     typeof raw.size !== "number" ||
@@ -85,9 +96,13 @@ function toFile(raw: Record<string, unknown>): File {
   return { name: raw.name, size: raw.size, modified: raw.modified };
 }
 
-function toUploadFileResponse(
-  raw: Record<string, unknown>,
-): UploadFileResponse {
+function toUploadFileResponse(raw: unknown): UploadFileResponse {
+  if (!isPlainObject(raw)) {
+    throw new NenDesktopContractError(
+      "invalid UploadFileResponse payload",
+      raw,
+    );
+  }
   if (
     typeof raw.success !== "boolean" ||
     typeof raw.size !== "number" ||
@@ -315,7 +330,7 @@ export class NenDesktop {
         raw,
       );
     }
-    return raw.files.map((f) => toFile(f as Record<string, unknown>));
+    return raw.files.map((f) => toFile(f));
   }
 
   /**
@@ -342,8 +357,7 @@ export class NenDesktop {
         },
         timeout: EXECUTE_TIMEOUT,
       },
-      async (resp) =>
-        toUploadFileResponse((await resp.json()) as Record<string, unknown>),
+      async (resp) => toUploadFileResponse(await resp.json()),
     );
   }
 
