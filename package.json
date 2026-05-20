@@ -2,6 +2,14 @@
   "name": "nen-sdk-js",
   "version": "0.3.0",
   "description": "TypeScript SDK for the Nen Desktop API",
+  "homepage": "https://getnen.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getnenai/nen-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/getnenai/nen-sdk-js/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
